@@ -42,4 +42,6 @@ func main() {
 		conn.Write([]byte("+OK\r\n"))
 	}
 
+	testRead("$6\r\nfoobar\r\n")
+
 }
