@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strconv"
 )
@@ -26,8 +27,8 @@ type Resp struct {
 	reader *bufio.Reader
 }
 
-func NewResp(reader io.Reader) *Resp {
-	return &Resp{reader: bufio.NewReader(reader)}
+func NewResp(rd io.Reader) *Resp {
+	return &Resp{reader: bufio.NewReader(rd)}
 }
 
 func (r *Resp) readLine() (line []byte, n int, err error) {
@@ -45,10 +46,6 @@ func (r *Resp) readLine() (line []byte, n int, err error) {
 	return line[:len(line)-2], n, nil
 }
 
-func (r *Resp) Read() (Value, error) {
-
-}
-
 func (r *Resp) readInteger() (x int, n int, err error) {
 	line, n, err := r.readLine()
 	if err != nil {
@@ -61,47 +58,67 @@ func (r *Resp) readInteger() (x int, n int, err error) {
 	return int(i64), n, nil
 }
 
-func (r *Resp) readArray() (Value, error) {
-	value := Value{}
-	value.typ = "array"
+func (r *Resp) Read() (Value, error) {
+	_type, err := r.reader.ReadByte()
 
-	// read array length
+	if err != nil {
+		return Value{}, err
+	}
+
+	switch _type {
+	case ARRAY:
+		return r.readArray()
+	case BULK:
+		return r.readBulk()
+	default:
+		fmt.Printf("Unknown type: %v", string(_type))
+		return Value{}, nil
+	}
+}
+
+func (r *Resp) readArray() (Value, error) {
+	v := Value{}
+	v.typ = "array"
+
+	// read length of array
 	len, _, err := r.readInteger()
 	if err != nil {
-		return value, err
+		return v, err
 	}
 
-	// read array values for each line
-	value.array = make([]Value, 0)
+	// foreach line, parse and read the value
+	v.array = make([]Value, 0)
 	for i := 0; i < len; i++ {
-		v, err := r.Read()
+		val, err := r.Read()
 		if err != nil {
-			return value, err
+			return v, err
 		}
-		value.array = append(value.array, v)
+
+		// append parsed value to array
+		v.array = append(v.array, val)
 	}
 
-	return value, nil
+	return v, nil
 }
 
 func (r *Resp) readBulk() (Value, error) {
-	value := Value{}
-	value.typ = "bulk"
+	v := Value{}
 
-	//read bulk length
+	v.typ = "bulk"
+
 	len, _, err := r.readInteger()
 	if err != nil {
-		return value, err
+		return v, err
 	}
 
-	// read bulk value
 	bulk := make([]byte, len)
 
 	r.reader.Read(bulk)
 
-	value.bulk = string(bulk)
+	v.bulk = string(bulk)
 
-	r.readLine() // read \r\n
+	// Read the trailing CRLF
+	r.readLine()
 
-	return value, nil
+	return v, nil
 }
