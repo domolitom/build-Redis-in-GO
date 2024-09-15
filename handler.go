@@ -5,11 +5,12 @@ import (
 )
 
 var Handlers = map[string]func([]Value) Value{
-	"PING": ping,
-	"SET":  set,
-	"GET":  get,
-	"HSET": hset,
-	"HGET": hget,
+	"PING":    ping,
+	"SET":     set,
+	"GET":     get,
+	"HSET":    hset,
+	"HGET":    hget,
+	"HGETALL": hgetall,
 }
 
 var SETs = map[string]string{}
@@ -102,5 +103,31 @@ func hget(args []Value) Value {
 	}
 
 	return Value{typ: "string", str: value}
+
+}
+
+func hgetall(args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'hgetall' command"}
+	}
+
+	id := args[0].bulk
+
+	HSETsMutex.Lock()
+	value, ok := HSETs[id]
+	HSETsMutex.Unlock()
+
+	if !ok {
+		return Value{typ: "null", str: "(nil)"}
+	}
+
+	var retValue Value
+	retValue.typ = "array"
+	for key, val := range value {
+		retValue.array = append(retValue.array, Value{typ: "bulk", bulk: key})
+		retValue.array = append(retValue.array, Value{typ: "bulk", bulk: val})
+	}
+
+	return retValue
 
 }
