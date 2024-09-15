@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 var Handlers = map[string]func([]Value) Value{
 	"PING": ping,
@@ -51,7 +53,7 @@ func get(args []Value) Value {
 	SETsMutex.RUnlock()
 
 	if !ok {
-		return Value{typ: "nil", str: "(nil)"}
+		return Value{typ: "null", str: "(nil)"}
 	}
 
 	return Value{typ: "string", str: value}
@@ -96,7 +98,7 @@ func hget(args []Value) Value {
 	HSETsMutex.Unlock()
 
 	if !ok {
-		return Value{typ: "nil", str: "(nil)"}
+		return Value{typ: "null", str: "(nil)"}
 	}
 
 	return Value{typ: "string", str: value}

@@ -58,6 +58,5 @@ func main() {
 		}
 		result := handler(args)
 		writer.Write(result)
-
 	}
 }
