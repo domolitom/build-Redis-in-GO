@@ -16,6 +16,14 @@ func main() {
 		return
 	}
 
+	// Create or read aof
+	aof, err := NewAof("db.aof")
+	if err != nil {
+		fmt.Print(err)
+		return
+	}
+	defer aof.Close()
+
 	// Listen for connections
 	conn, err := l.Accept()
 	if err != nil {
@@ -26,7 +34,7 @@ func main() {
 	defer conn.Close()
 
 	resp := NewResp(conn)
-
+	aof.Read(resp)
 	for {
 		value, err := resp.Read()
 		if err != nil {
@@ -58,5 +66,10 @@ func main() {
 		}
 		result := handler(args)
 		writer.Write(result)
+
+		//Add 'SET' and 'HSET' to aof file,
+		if command == "SET" || command == "HSET" {
+			aof.Write(value)
+		}
 	}
 }
